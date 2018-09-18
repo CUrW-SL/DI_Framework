@@ -1,6 +1,6 @@
 {
   "algo_config": {
-    "init_tidal_config": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/Template/INITTIDAL.CONF",
+    "init_tidal_config": "/home/nira/PycharmProjects/DI_Framework/flo2d_input_preparation/Template/INITTIDAL.CONF",
     "DAT_WIDTH": 12
   },
 
@@ -23,6 +23,6 @@
   },
 
   "output_config": {
-    "outflow_dat_fp": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/outflow/OUTFLOW.DAT"
+    "outflow_dat_fp": "/home/nira/PycharmProjects/DI_Framework/flo2d_input_preparation/outflow/OUTFLOW.DAT"
   }
 }

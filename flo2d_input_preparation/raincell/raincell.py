@@ -23,7 +23,11 @@ class RaincellNcfIO(IOProcessor):
         nc_f = dynamic_args['ncfs']['nc_f']
         diff, kel_lats, kel_lons, times = ext_utils.\
             extract_area_rf_series(nc_f, kel_lat_min, kel_lat_max, kel_lon_min, kel_lon_max)
+
+        # converting to DatetimeIndex.
         times = pd.to_datetime(times, format='%Y-%m-%d_%H:%M:%S')
+        # converting utc time to lk time shifting by 6hs. utc to lk shift: 5h 30min + additional shift: 30min.
+        times = times.shift(1, freq=timedelta(hours=6))
 
         def get_bins(arr):
             sz = len(arr)
@@ -51,45 +55,52 @@ class RaincellNcfIO(IOProcessor):
         # preparing input for the first line of RAINCELL.DAT
         res_mins = int((t1 - t0).total_seconds() / 60)
         data_hours = int(len(times) + prev_days * 24 * 60 / res_mins)
-        start_ts = common_utils.datetime_utc_to_lk(t0 - timedelta(days=prev_days), shift_mins=30)
-        end_ts = common_utils.datetime_utc_to_lk(t_end, shift_mins=30)
+        start_ts = t0 - timedelta(days=prev_days)
+        end_ts = t_end
 
         # preparing the rainfall of each cell_no
+        prev_times_len = int(24 * 60 / res_mins)
         rainfall_ = {}
         for point in points:
             cell_no = int(point[0])
-            values = []
             rf_x = np.digitize(point[1], lon_bins)
             rf_y = np.digitize(point[2], lat_bins)
+            prev_values = []
             for d in range(prev_days):
-                for t in range(int(24 * 60 / res_mins)):
+                for t in range(prev_times_len):
                     if prev_diff[prev_days - 1 - d] is not None:
-                        values.append(prev_diff[prev_days - 1 - d][t, rf_y, rf_x])
+                        prev_values.append(prev_diff[prev_days - 1 - d][t, rf_y, rf_x])
                     else:
-                        values.append(0)
-            rainfall_[cell_no] = values
+                        prev_values.append(0)
+            rainfall_[cell_no] = prev_values
+            del prev_values
 
         alpha = self.input_config['target_rf']/self.input_config['avg_basin_rf']
         for point in points:
             cell_no = int(point[0])
-            values = []
             rf_x = np.digitize(point[1], lon_bins)
             rf_y = np.digitize(point[2], lat_bins)
+            values = []
             for t in range(len(times)):
                 if t < int(24 * 60 / res_mins):
                     values.append(diff[t, rf_y, rf_x] * alpha)
                 else:
                     values.append(diff[t, rf_y, rf_x])
-            rainfall_[cell_no] = values
+            rainfall_[cell_no].extend(values)
+            del values
 
         # preapring pandas Dataframe of rainfall. index: datetime of times, cloumns: cell_nos as int
-        rainfall_df = pd.DataFrame(data=rainfall_, index=times)
+        prev_times = pd.DatetimeIndex(start=start_ts, freq=timedelta(minutes=res_mins),
+                                      periods=prev_times_len*prev_days,)
+        time_index = prev_times.append(times)
+        rainfall_df = pd.DataFrame(data=rainfall_, index=time_index)
+        del prev_times, times, rainfall_, time_index
 
         # preparing the input that is ready to be fed into algo.
-        # {'res_min': , 'data_hours':, 'start_ts':, 'end_ts':, 'rainfall': }
+        # {'res_min': , 'data_batch_size':, 'start_ts':, 'end_ts':, 'rainfall': }
         return {
             'res_min': res_mins,
-            'data_hours': data_hours,
+            'batch_size': data_hours,
             'start_ts': start_ts,
             'end_ts': end_ts,
             'rainfall': rainfall_df
@@ -97,6 +108,9 @@ class RaincellNcfIO(IOProcessor):
 
     def push_output(self, algo_output, **dynamic_args):
         print('saving the output...')
+        if algo_output is not None:
+            with open(self.output_config['outflow_dat_fp'], 'w') as out_f:
+                out_f.writelines(algo_output)
 
 
 class RaincellHybridIO(IOProcessor):
@@ -132,7 +146,43 @@ class RaincellObsIO(IOProcessor):
 class RaincellAlgo(Algorithm):
 
     def algo(self, algo_input, **dynamic_args):
-        return None
+        try:
+            RaincellAlgo.check_input_integrity(algo_input)
+            return RaincellAlgo.prepare_line(res_min=algo_input['res_min'],
+                                             batch_size=algo_input['batch_size'],
+                                             start_ts=algo_input['start_ts'],
+                                             end_ts=algo_input['end_ts'],
+                                             rainfall_df=algo_input['rainfall'])
+        except AttributeError as ex:
+            print('Input Integrity Error: ', ex)
+            return None
+
+    @staticmethod
+    def check_input_integrity(algo_input):
+        # Check the integrity of key.
+        input_keys = ['res_min', 'batch_size', 'start_ts', 'end_ts', 'rainfall']
+        if not algo_input.keys() == set(input_keys):
+            raise AttributeError('Invalid input. algo_input should be a dict with the keys: (%s)' % input_keys)
+        rainfall_time_index = algo_input['rainfall'].index
+        if not algo_input['batch_size'] == rainfall_time_index.size:
+            raise AttributeError('batch_size and size of time-index of rainfall data-frame should be the same.')
+        if not rainfall_time_index[0] == algo_input['start_ts']:
+            raise AttributeError('Start timestamp (start_ts) and the first value of rainfall-time-index is different.')
+        if not rainfall_time_index[-1] == algo_input['end_ts']:
+            raise AttributeError('End timestamp (end_ts) and the last value of rainfall-time-index is different.')
+        return True
+
+    @staticmethod
+    def prepare_line(res_min, batch_size, start_ts, end_ts, rainfall_df):
+        lines = []
+        header_line = "%d %d %s %s\n" % (res_min, batch_size, start_ts, end_ts)
+        lines.append(header_line)
+        cell_nos = np.sort(rainfall_df.columns)
+        for index, row in rainfall_df.iterrows():
+            for cell in cell_nos:
+                line = "%d %.1f\n" % (cell, row[cell])
+                lines.append(line)
+        return lines
 
 
 if __name__ == '__main__':

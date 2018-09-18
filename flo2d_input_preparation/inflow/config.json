@@ -1,6 +1,6 @@
 {
   "algo_config": {
-    "init_wl_config": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/Template/INITWL.CONF",
+    "init_wl_config": "/home/nira/PycharmProjects/DI_Framework/flo2d_input_preparation/Template/INITWL.CONF",
     "DAT_WIDTH": 12,
     "IHOURDAILY": 0,
     "IDEPLT": 0,
@@ -29,6 +29,6 @@
   },
 
   "output_config": {
-    "inflow_dat_fp": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/inflow/INFLOW.DAT"
+    "inflow_dat_fp": "/home/nira/PycharmProjects/DI_Framework/flo2d_input_preparation/inflow/INFLOW.DAT"
   }
 }
