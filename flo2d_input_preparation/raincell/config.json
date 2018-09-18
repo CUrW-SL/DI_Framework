@@ -1,0 +1,21 @@
+{
+  "algo_config": {
+  },
+
+  "input_config": {
+    "avg_basin_rf": 1.0,
+    "target_rf": 1.0,
+    "kelani_basin_cell_lon_lat_map_file": "/home/nira/PycharmProjects/DI_Framewok/resources/model-250m/cell-map/kelani_basin_points_250m.txt",
+    "db_config": {
+      "host": "",
+      "port": 3306,
+      "user": "root",
+      "password": "",
+      "db": "curw"
+    }
+  },
+
+  "output_config": {
+    "outflow_dat_fp": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/raincell/RAINCELL.DAT"
+  }
+}

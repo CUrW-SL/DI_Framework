@@ -1,0 +1,34 @@
+{
+  "algo_config": {
+    "init_wl_config": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/Template/INITWL.CONF",
+    "DAT_WIDTH": 12,
+    "IHOURDAILY": 0,
+    "IDEPLT": 0,
+    "IFC": "C",
+    "INOUTFC": 0,
+    "KHIN": 8655,
+    "HYDCHAR": "H"
+  },
+
+  "input_config": {
+    "inflow-forecast-tms-meta": {
+      "run_name": "Cloud-1",
+      "station_name": "Hanwella",
+      "variable": "Discharge",
+      "unit": "m3/s",
+      "event_type": "Forecast",
+      "source": "HEC-HMS"
+    },
+    "db_config": {
+      "host": "",
+      "port": 3306,
+      "user": "root",
+      "password": "",
+      "db": "curw"
+    }
+  },
+
+  "output_config": {
+    "inflow_dat_fp": "/home/nira/PycharmProjects/DI_Framewok/flo2d_input_preparation/inflow/INFLOW.DAT"
+  }
+}
