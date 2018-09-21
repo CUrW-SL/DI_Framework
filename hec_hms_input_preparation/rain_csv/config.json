@@ -1,0 +1,59 @@
+{
+  "algo_config": {
+    "location-names": ["Awissawella", "Colombo"],
+    "location-ids": ["Awissawella", "Colombo"],
+    "timestamp-format": "%Y-%m-%d %H:%M:%S"
+  },
+
+  "input_config": {
+    "location-names": ["Awissawella", "Colombo"],
+    "location-ids": ["Awissawella", "Colombo"],
+    "obs_tms_meta": {
+      "Colombo": {
+        "run_name": "Cloud-1",
+        "station_name": "klb_mean",
+        "variable": "Precipitation",
+        "unit": "mm",
+        "event_type": "Forecast-0-d",
+        "source": "wrf0"
+      },
+      "Awissawella": {
+        "run_name": "Cloud-1",
+        "station_name": "kub_mean",
+        "variable": "Precipitation",
+        "unit": "mm",
+        "event_type": "Forecast-0-d",
+        "source": "wrf0"
+      }
+    },
+    "forecast_tms_meta": {
+      "Colombo": {
+        "run_name": "Cloud-1",
+        "station_name": "klb_mean",
+        "variable": "Precipitation",
+        "unit": "mm",
+        "event_type": "Forecast",
+        "source": "wrf0"
+      },
+      "Awissawella": {
+        "run_name": "Cloud-1",
+        "station_name": "kub_mean",
+        "variable": "Precipitation",
+        "unit": "mm",
+        "event_type": "Forecast",
+        "source": "wrf0"
+      }
+    },
+    "db_config": {
+      "host": "",
+      "port": 3306,
+      "user": "root",
+      "password": "",
+      "db": "curw"
+    }
+  },
+
+  "output_config": {
+    "rain_csv_fp": "/home/nira/PycharmProjects/DI_Framework/hec_hms_input_preparation/rain_csv/DailyRain.csv"
+  }
+}

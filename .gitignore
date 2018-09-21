@@ -109,3 +109,6 @@ ENV/
 
 # DAT files
 *.DAT
+
+# csv files
+*.csv

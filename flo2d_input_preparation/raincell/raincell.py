@@ -1,4 +1,3 @@
-from glob import glob
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -7,7 +6,6 @@ from algo_wrapper import Config, IOProcessor, Algorithm
 from data_layer.base import get_engine, get_sessionmaker
 from data_layer.timeseries import Timeseries
 from di_framework.utils.wrf.extraction import ext_utils
-from di_framework.utils import common_utils
 
 
 class RaincellNcfIO(IOProcessor):
@@ -154,7 +152,7 @@ class RaincellAlgo(Algorithm):
                                              end_ts=algo_input['end_ts'],
                                              rainfall_df=algo_input['rainfall'])
         except AttributeError as ex:
-            print('Input Integrity Error: ', ex)
+            print('Input Integrity Error!', ex)
             return None
 
     @staticmethod
@@ -200,81 +198,3 @@ if __name__ == '__main__':
         base_dt=datetime(2018, 1, 1, 0, 0, 0),
         end_dt=datetime(2018, 1, 1, 0, 0, 0),
     )
-
-
-def extract_kelani_basin_rainfall_flo2d(nc_f, nc_f_prev_days, output_dir, avg_basin_rf=1.0, kelani_basin_file=None,
-                                        target_rfs=None, output_prefix='RAINCELL'):
-    """
-    :param output_prefix:
-    :param nc_f:
-    :param nc_f_prev_days:
-    :param output_dir:
-    :param avg_basin_rf:
-    :param kelani_basin_file:
-    :param target_rfs:
-    :return:
-    """
-    if target_rfs is None:
-        target_rfs = [100, 150, 200, 250, 300]
-    if kelani_basin_file is None:
-        raise AttributeError('kalani_basin_file cannot be None. Should have a valid file path.')
-
-    points = np.genfromtxt(kelani_basin_file, delimiter=',')
-
-    kel_lon_min = np.min(points, 0)[1]
-    kel_lat_min = np.min(points, 0)[2]
-    kel_lon_max = np.max(points, 0)[1]
-    kel_lat_max = np.max(points, 0)[2]
-
-    diff, kel_lats, kel_lons, times = ext_utils.extract_area_rf_series(nc_f, kel_lat_min, kel_lat_max, kel_lon_min,
-                                                                       kel_lon_max)
-
-    def get_bins(arr):
-        sz = len(arr)
-        return (arr[1:sz - 1] + arr[0:sz - 2]) / 2
-
-    lat_bins = get_bins(kel_lats)
-    lon_bins = get_bins(kel_lons)
-
-    t0 = datetime.strptime(times[0], '%Y-%m-%d_%H:%M:%S')
-    t1 = datetime.strptime(times[1], '%Y-%m-%d_%H:%M:%S')
-    t_end = datetime.strptime(times[-1], '%Y-%m-%d_%H:%M:%S')
-
-    prev_diff = []
-    prev_days = len(nc_f_prev_days)
-    for i in range(prev_days):
-        if nc_f_prev_days[i]:
-            p_diff, _, _, _ = ext_utils.extract_area_rf_series(nc_f_prev_days[i], kel_lat_min, kel_lat_max, kel_lon_min,
-                                                               kel_lon_max)
-            prev_diff.append(p_diff)
-        else:
-            prev_diff.append(None)
-
-    def write_forecast_to_raincell_file(output_file_path, alpha):
-        with open(output_file_path, 'w') as output_file:
-            res_mins = int((t1 - t0).total_seconds() / 60)
-            data_hours = int(len(times) + prev_days * 24 * 60 / res_mins)
-            start_ts = common_utils.datetime_utc_to_lk(t0 - timedelta(days=prev_days), shift_mins=30).strftime(
-                '%Y-%m-%d %H:%M:%S')
-            end_ts = common_utils.datetime_utc_to_lk(t_end, shift_mins=30).strftime('%Y-%m-%d %H:%M:%S')
-
-            output_file.write("%d %d %s %s\n" % (res_mins, data_hours, start_ts, end_ts))
-
-            for d in range(prev_days):
-                for t in range(int(24 * 60 / res_mins)):
-                    for point in points:
-                        rf_x = np.digitize(point[1], lon_bins)
-                        rf_y = np.digitize(point[2], lat_bins)
-                        if prev_diff[prev_days - 1 - d] is not None:
-                            output_file.write('%d %.1f\n' % (point[0], prev_diff[prev_days - 1 - d][t, rf_y, rf_x]))
-                        else:
-                            output_file.write('%d %.1f\n' % (point[0], 0))
-
-            for t in range(len(times)):
-                for point in points:
-                    rf_x = np.digitize(point[1], lon_bins)
-                    rf_y = np.digitize(point[2], lat_bins)
-                    if t < int(24 * 60 / res_mins):
-                        output_file.write('%d %.1f\n' % (point[0], diff[t, rf_y, rf_x] * alpha))
-                    else:
-                        output_file.write('%d %.1f\n' % (point[0], diff[t, rf_y, rf_x]))
